@@ -13,7 +13,6 @@ class GraphicSystem:
         self.root = root
         self.display_list = []
         self.viewport = Viewport(tk.Canvas(root, width=500, height=500, bg="white"), -250, 250, -250, 250)
-
         self.init_ui()
 
     def init_ui(self):
@@ -25,6 +24,19 @@ class GraphicSystem:
         # 1. Seção de Adicionar Objetos
         add_objects_frame = LabelFrame(self.control_panel, text="Adicionar Objetos", padx=10, pady=10)
         add_objects_frame.pack(fill=tk.X, pady=5)
+
+        self.add_objects_expanded = True
+        def toggle_add_objects():
+            if self.add_objects_expanded:
+                add_objects_frame.pack_forget()
+                self.btn_toggle_add_objects.config(text="Expandir Adicionar Objetos")
+            else:
+                add_objects_frame.pack(fill=tk.X, pady=5)
+                self.btn_toggle_add_objects.config(text="Recolher Adicionar Objetos")
+            self.add_objects_expanded = not self.add_objects_expanded
+
+        self.btn_toggle_add_objects = tk.Button(self.control_panel, text="Recolher Adicionar Objetos", command=toggle_add_objects)
+        self.btn_toggle_add_objects.pack(fill=tk.X, pady=2)
 
         self.btn_add_point = tk.Button(add_objects_frame, text="Adicionar Ponto", width=20, command=self.add_point)
         self.btn_add_point.grid(row=0, column=0, padx=5, pady=5)
@@ -79,6 +91,20 @@ class GraphicSystem:
         # 5. Seção de Transformações
         transformations_frame = LabelFrame(self.control_panel, text="Transformações", padx=10, pady=10)
         transformations_frame.pack(fill=tk.X, pady=5)
+
+        # Botão para recolher/expandir a seção de Transformações
+        self.transformations_expanded = True
+        def toggle_transformations():
+            if self.transformations_expanded:
+                transformations_frame.pack_forget()
+                self.btn_toggle_transformations.config(text="Expandir Transformações")
+            else:
+                transformations_frame.pack(fill=tk.X, pady=5)
+                self.btn_toggle_transformations.config(text="Recolher Transformações")
+            self.transformations_expanded = not self.transformations_expanded
+
+        self.btn_toggle_transformations = tk.Button(self.control_panel, text="Recolher Transformações", command=toggle_transformations)
+        self.btn_toggle_transformations.pack(fill=tk.X, pady=2)
 
         # 5.1 Translação
         translation_frame = LabelFrame(transformations_frame, text="Translação", padx=10, pady=10)
@@ -201,31 +227,41 @@ class GraphicSystem:
 
         for index in selected_indices:
             obj = self.display_list[index]
-            new_coords = []
-            for (x, y) in obj.coords:
-                coord_vector = np.array([x, y, 1])
-                transformed_coord = translation_matrix.dot(coord_vector)
-                new_coords.append((transformed_coord[0], transformed_coord[1]))
+            new_coords = [
+                (translation_matrix.dot([x, y, 1])[:2]) for x, y in obj.coords
+            ]
             obj.coords = new_coords
-
         self.update_viewport()
 
     def apply_rotation(self):
         try:
             angle_deg = float(self.angle_entry.get())
-        except ValueError:
-            messagebox.showerror("Erro", "Ângulo de rotação inválido.")
+            cx, cy = map(float, simpledialog.askstring("Centro de Rotação", "Digite X e Y do ponto de rotação, separados por vírgula:").split(','))
+        except (ValueError, AttributeError):
+            messagebox.showerror("Erro", "Ângulo ou ponto de rotação inválido.")
             return
 
         angle_rad = math.radians(angle_deg)
         cos_theta = math.cos(angle_rad)
         sin_theta = math.sin(angle_rad)
 
+        translation_to_origin = np.array([
+            [1, 0, -cx],
+            [0, 1, -cy],
+            [0, 0, 1]
+        ])
         rotation_matrix = np.array([
             [cos_theta, -sin_theta, 0],
             [sin_theta, cos_theta, 0],
             [0, 0, 1]
         ])
+        translation_back = np.array([
+            [1, 0, cx],
+            [0, 1, cy],
+            [0, 0, 1]
+        ])
+
+        transformation_matrix = translation_back @ rotation_matrix @ translation_to_origin
 
         selected_indices = self.object_listbox.curselection()
         if not selected_indices:
@@ -234,13 +270,10 @@ class GraphicSystem:
 
         for index in selected_indices:
             obj = self.display_list[index]
-            new_coords = []
-            for (x, y) in obj.coords:
-                coord_vector = np.array([x, y, 1])
-                transformed_coord = rotation_matrix.dot(coord_vector)
-                new_coords.append((transformed_coord[0], transformed_coord[1]))
+            new_coords = [
+                (transformation_matrix.dot([x, y, 1])[:2]) for x, y in obj.coords
+            ]
             obj.coords = new_coords
-
         self.update_viewport()
 
     def apply_scaling(self):
@@ -252,12 +285,6 @@ class GraphicSystem:
             messagebox.showerror("Erro", "Fator de escalonamento inválido. Deve ser um número positivo.")
             return
 
-        scaling_matrix = np.array([
-            [scale_factor, 0, 0],
-            [0, scale_factor, 0],
-            [0, 0, 1]
-        ])
-
         selected_indices = self.object_listbox.curselection()
         if not selected_indices:
             messagebox.showwarning("Aviso", "Nenhum objeto selecionado para escalonamento.")
@@ -265,11 +292,27 @@ class GraphicSystem:
 
         for index in selected_indices:
             obj = self.display_list[index]
-            new_coords = []
-            for (x, y) in obj.coords:
-                coord_vector = np.array([x, y, 1])
-                transformed_coord = scaling_matrix.dot(coord_vector)
-                new_coords.append((transformed_coord[0], transformed_coord[1]))
-            obj.coords = new_coords
+            base_x, base_y = obj.coords[0]  # Primeiro vértice como base
+            translation_to_origin = np.array([
+                [1, 0, -base_x],
+                [0, 1, -base_y],
+                [0, 0, 1]
+            ])
+            scaling_matrix = np.array([
+                [scale_factor, 0, 0],
+                [0, scale_factor, 0],
+                [0, 0, 1]
+            ])
+            translation_back = np.array([
+                [1, 0, base_x],
+                [0, 1, base_y],
+                [0, 0, 1]
+            ])
 
+            transformation_matrix = translation_back @ scaling_matrix @ translation_to_origin
+
+            new_coords = [
+                (transformation_matrix.dot([x, y, 1])[:2]) for x, y in obj.coords
+            ]
+            obj.coords = new_coords
         self.update_viewport()
