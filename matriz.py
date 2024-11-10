@@ -1,3 +1,4 @@
+# matriz.py
 class Matriz:
     def __init__(self, linhas, colunas, preenche=True):
         self.linhas = linhas

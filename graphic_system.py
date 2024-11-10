@@ -5,6 +5,8 @@ from tkinter import simpledialog, messagebox, Listbox, MULTIPLE, END, LabelFrame
 import math
 from input_window import InputWindow
 from viewport import Viewport
+import numpy as np
+
 
 class GraphicSystem:
     def __init__(self, root):
@@ -186,6 +188,12 @@ class GraphicSystem:
             messagebox.showerror("Erro", "Valores de translação inválidos.")
             return
 
+        translation_matrix = np.array([
+            [1, 0, dx],
+            [0, 1, dy],
+            [0, 0, 1]
+        ])
+
         selected_indices = self.object_listbox.curselection()
         if not selected_indices:
             messagebox.showwarning("Aviso", "Nenhum objeto selecionado para translação.")
@@ -195,9 +203,9 @@ class GraphicSystem:
             obj = self.display_list[index]
             new_coords = []
             for (x, y) in obj.coords:
-                x_new = x + dx
-                y_new = y + dy
-                new_coords.append((x_new, y_new))
+                coord_vector = np.array([x, y, 1])
+                transformed_coord = translation_matrix.dot(coord_vector)
+                new_coords.append((transformed_coord[0], transformed_coord[1]))
             obj.coords = new_coords
 
         self.update_viewport()
@@ -213,6 +221,12 @@ class GraphicSystem:
         cos_theta = math.cos(angle_rad)
         sin_theta = math.sin(angle_rad)
 
+        rotation_matrix = np.array([
+            [cos_theta, -sin_theta, 0],
+            [sin_theta, cos_theta, 0],
+            [0, 0, 1]
+        ])
+
         selected_indices = self.object_listbox.curselection()
         if not selected_indices:
             messagebox.showwarning("Aviso", "Nenhum objeto selecionado para rotação.")
@@ -222,9 +236,9 @@ class GraphicSystem:
             obj = self.display_list[index]
             new_coords = []
             for (x, y) in obj.coords:
-                x_new = x * cos_theta - y * sin_theta
-                y_new = x * sin_theta + y * cos_theta
-                new_coords.append((x_new, y_new))
+                coord_vector = np.array([x, y, 1])
+                transformed_coord = rotation_matrix.dot(coord_vector)
+                new_coords.append((transformed_coord[0], transformed_coord[1]))
             obj.coords = new_coords
 
         self.update_viewport()
@@ -238,6 +252,12 @@ class GraphicSystem:
             messagebox.showerror("Erro", "Fator de escalonamento inválido. Deve ser um número positivo.")
             return
 
+        scaling_matrix = np.array([
+            [scale_factor, 0, 0],
+            [0, scale_factor, 0],
+            [0, 0, 1]
+        ])
+
         selected_indices = self.object_listbox.curselection()
         if not selected_indices:
             messagebox.showwarning("Aviso", "Nenhum objeto selecionado para escalonamento.")
@@ -247,9 +267,9 @@ class GraphicSystem:
             obj = self.display_list[index]
             new_coords = []
             for (x, y) in obj.coords:
-                x_new = x * scale_factor
-                y_new = y * scale_factor
-                new_coords.append((x_new, y_new))
+                coord_vector = np.array([x, y, 1])
+                transformed_coord = scaling_matrix.dot(coord_vector)
+                new_coords.append((transformed_coord[0], transformed_coord[1]))
             obj.coords = new_coords
 
         self.update_viewport()
