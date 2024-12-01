@@ -18,24 +18,33 @@ class GraphicSystem:
         self.add_default_3d_object()  # Adiciona o objeto 3D ao iniciar
 
     def add_default_3d_object(self):
-        # Exemplo de coordenadas 3D para um polígono
+    # Exemplo de coordenadas 3D para um polígono
         coords = [
-            (0, 0, 0), (50, 0, 0), (50, 50, 0), (25, 90, 0),
-            (0, 50, 0), (0, 0, 0), (0, 0, -20), (50, 0, -20),
-            (50, 0, 0), (50, 0, -20), (50, 50, -20), (50, 50, 0),
-            (50, 50, -20), (25, 90, -20), (25, 90, 0), (25, 90, -20),
-            (0, 50, -20), (0, 50, 0), (0, 50, -20), (0, 0, -20)
+            (-25, -45, 0), (25, -45, 0), (25, 5, 0), (0, 45, 0),
+            (-25, 5, 0), (-25, -45, 0), (-25, -45, -20), (25, -45, -20),
+            (25, -45, 0), (25, -45, -20), (25, 5, -20), (25, 5, 0),
+            (25, 5, -20), (0, 45, -20), (0, 45, 0), (0, 45, -20),
+            (-25, 5, -20), (-25, 5, 0), (-25, 5, -20), (-25, -45, -20)
         ]
         polygon_3d = Polygon3D(coords, name="Casa 3D")  # Criação do objeto
         self.display_list.append(polygon_3d)  # Adiciona à lista de objetos para exibição
         self.update_listbox()  # Atualiza a lista de objetos no menu
         self.update_viewport()
 
+    def draw_reference_axes(self):
+        width = self.viewport.canvas.winfo_width()
+        height = self.viewport.canvas.winfo_height()
+        self.viewport.canvas.create_line(width // 2, 0, width // 2, height, fill="gray", dash=(4, 2))  # Linha do eixo Y
+        self.viewport.canvas.create_line(0, height // 2, width, height // 2, fill="gray", dash=(4, 2))  # Linha do eixo X
+
     def init_ui(self):
         self.viewport.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         self.control_panel = tk.Frame(self.root)
         self.control_panel.pack(side=tk.RIGHT, fill=tk.Y, padx=10, pady=10)
+
+        # Ajustar a viewport e desenhar os eixos após a renderização inicial
+        self.root.after(100, self.update_viewport)
 
         # 1. Seção de Seleção de Objetos
         select_objects_frame = LabelFrame(self.control_panel, text="Selecionar Objetos", padx=10, pady=10)
@@ -138,14 +147,14 @@ class GraphicSystem:
     def update_viewport(self):
         self.viewport.canvas.delete("all")
         self.viewport.update_canvas(self.display_list)
-        
+        self.draw_reference_axes()  # Garantir que os eixos são redesenhados
+
         for obj in self.display_list:
             if isinstance(obj, Polygon3D):
                 # Projetando as coordenadas 3D para 2D (ignora Z e pega X, Y)
                 for x, y, z in obj.coords:
                     screen_x, screen_y = self.viewport.world_to_viewport(x, y)
                     self.viewport.canvas.create_oval(screen_x - 3, screen_y - 3, screen_x + 3, screen_y + 3, fill="black")
-
 
     def remove_object(self):
         selected_indices = self.object_listbox.curselection()

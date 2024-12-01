@@ -21,15 +21,15 @@ class TransformationWindow:
         translation_tab = ttk.Frame(tab_control)
         tab_control.add(translation_tab, text="Translação")
 
-        tk.Label(translation_tab, text="dx:").grid(row=0, column=0, padx=10, pady=5)
+        tk.Label(translation_tab, text="Dx:").grid(row=0, column=0, padx=10, pady=5)
         self.dx_entry = tk.Entry(translation_tab)
         self.dx_entry.grid(row=0, column=1, padx=10, pady=5)
 
-        tk.Label(translation_tab, text="dy:").grid(row=1, column=0, padx=10, pady=5)
+        tk.Label(translation_tab, text="Dy:").grid(row=1, column=0, padx=10, pady=5)
         self.dy_entry = tk.Entry(translation_tab)
         self.dy_entry.grid(row=1, column=1, padx=10, pady=5)
 
-        tk.Label(translation_tab, text="dz:").grid(row=2, column=0, padx=10, pady=5)
+        tk.Label(translation_tab, text="Dz:").grid(row=2, column=0, padx=10, pady=5)
         self.dz_entry = tk.Entry(translation_tab)
         self.dz_entry.grid(row=2, column=1, padx=10, pady=5)
 
@@ -43,6 +43,11 @@ class TransformationWindow:
         tk.Label(rotation_tab, text="Ângulo (°):").grid(row=0, column=0, padx=10, pady=5)
         self.angle_entry = tk.Entry(rotation_tab)
         self.angle_entry.grid(row=0, column=1, padx=10, pady=5)
+
+        # Adicione uma lista suspensa para selecionar o eixo
+        self.rotation_axis = tk.StringVar(value='z')
+        tk.Label(rotation_tab, text="Eixo de Rotação:").grid(row=4, column=0, padx=10, pady=5)
+        tk.OptionMenu(rotation_tab, self.rotation_axis, 'x', 'y', 'z').grid(row=4, column=1, padx=10, pady=5)
 
         # Checkboxes para modos de rotação
         self.rotate_origin_var = tk.BooleanVar(value=False)
@@ -65,12 +70,12 @@ class TransformationWindow:
         self.rotate_point_checkbox.grid(row=2, column=0, padx=10, pady=5)
 
         # Campos para ponto de rotação
-        tk.Label(rotation_tab, text="Centro de Rotação (cx, cy):").grid(row=3, column=0, padx=10, pady=5)
+        tk.Label(rotation_tab, text="Centro de Rotação (Cx, Cy):").grid(row=3, column=0, padx=10, pady=5)
         self.cx_cy_entry = tk.Entry(rotation_tab, state="disabled")  # Inicialmente desabilitado
         self.cx_cy_entry.grid(row=3, column=1, padx=10, pady=5)
 
         # Botão de Aplicar Rotação
-        tk.Button(rotation_tab, text="Aplicar Rotação", command=self.apply_rotation).grid(row=4, column=0, columnspan=2, pady=10)
+        tk.Button(rotation_tab, text="Aplicar Rotação", command=self.apply_rotation).grid(row=6, column=0, columnspan=2, pady=10)
 
         # Aba de Escalonamento
         scaling_tab = ttk.Frame(tab_control)
@@ -80,6 +85,10 @@ class TransformationWindow:
         tk.Label(scaling_tab, text="Fator de Escala:").grid(row=0, column=0, padx=10, pady=5)
         self.scale_entry = tk.Entry(scaling_tab)
         self.scale_entry.grid(row=0, column=1, padx=10, pady=5)
+
+        tk.Label(scaling_tab, text="Centro de Escalonamento (Cx, Cy, Cz):").grid(row=3, column=0, padx=10, pady=5)
+        self.scale_cx_cy_cz_entry = tk.Entry(scaling_tab, state="disabled")
+        self.scale_cx_cy_cz_entry.grid(row=3, column=1, padx=10, pady=5)
 
         # Checkboxes para modos de escalonamento
         self.scale_origin_var = tk.BooleanVar(value=False)
@@ -100,11 +109,6 @@ class TransformationWindow:
             command=self.toggle_scaling_mode
         )
         self.scale_point_checkbox.grid(row=2, column=0, padx=10, pady=5)
-
-        # Campos para ponto de escalonamento
-        tk.Label(scaling_tab, text="Centro de Escalonamento (cx, cy):").grid(row=3, column=0, padx=10, pady=5)
-        self.scale_cx_cy_entry = tk.Entry(scaling_tab, state="disabled")  # Inicialmente desabilitado
-        self.scale_cx_cy_entry.grid(row=3, column=1, padx=10, pady=5)
 
         # Botão de Aplicar Escalonamento
         tk.Button(scaling_tab, text="Aplicar Escalonamento", command=self.apply_scaling).grid(row=4, column=0, columnspan=2, pady=10)
@@ -161,61 +165,64 @@ class TransformationWindow:
     def apply_rotation(self):
         try:
             angle = float(self.angle_entry.get())  # Obtém o ângulo de rotação
+            axis = self.rotation_axis.get()  # Obtém o eixo de rotação selecionado
 
             # Verifica qual modo de rotação foi selecionado
             if self.rotate_origin_var.get():  # Rotacionar sobre a origem
-                cx, cy = 0, 0  # Define a origem como centro de rotação
+                cx, cy, cz = 0, 0, 0  # Define a origem como centro de rotação
             elif self.rotate_point_var.get():  # Rotacionar sobre um ponto qualquer
-                cx, cy = map(float, self.cx_cy_entry.get().split(','))  # Obtém o ponto de rotação
+                cx, cy, cz = map(float, self.cx_cy_entry.get().split(','))  # Obtém o ponto de rotação
             else:
                 messagebox.showerror("Erro", "Selecione um modo de rotação.")
                 return
+
             # Aplica a rotação para os objetos selecionados
             for idx in self.selected_indices:
-                apply_rotation(self.display_list[idx], angle, cx, cy)
+                apply_rotation(self.display_list[idx], angle, axis, cx, cy, cz)
 
             # Atualiza a viewport após a rotação
             self.update_viewport()
+
+        except ValueError:
+            messagebox.showerror("Erro", "Insira valores válidos para o ângulo, o eixo e o ponto de rotação, se necessário.")
+
 
         except ValueError:
             messagebox.showerror("Erro", "Insira valores válidos para o ângulo e o ponto de rotação, se necessário.")
 
     def toggle_scaling_mode(self):
         if self.scale_origin_var.get():
-            self.scale_cx_cy_entry.configure(state="disabled")  # Desabilita o campo de ponto
+            self.scale_cx_cy_cz_entry.configure(state="disabled")  # Desabilita o campo de ponto
             self.scale_point_var.set(False)  # Desmarca a outra checkbox
         elif self.scale_point_var.get():
-            self.scale_cx_cy_entry.configure(state="normal")  # Habilita o campo de ponto
+            self.scale_cx_cy_cz_entry.configure(state="normal")  # Habilita o campo de ponto
             self.scale_origin_var.set(False)  # Desmarca a outra checkbox
 
     def apply_scaling(self):
         try:
             # Obtém o fator de escala
-            scale_factor = float(self.scale_entry.get())  
+            scale_factor = float(self.scale_entry.get())
 
             # Verifica qual modo de escalonamento foi selecionado
             if self.scale_origin_var.get():  # Escalonar em relação à origem
-                for idx in self.selected_indices:
-                    obj = self.display_list[idx]
-                    if obj.coords:  # Verifica se o objeto possui pontos
-                        cx, cy = obj.coords[0]  # Primeiro vértice como base
-                        apply_scaling(obj, scale_factor, cx, cy)  # Aplica o escalonamento ao objeto
+                cx, cy, cz = 0, 0, 0  # Define a origem como centro de escalonamento
             elif self.scale_point_var.get():  # Escalonar em relação a um ponto qualquer
-                cx, cy = map(float, self.scale_cx_cy_entry.get().split(','))  # Obtém o ponto
-                for idx in self.selected_indices:
-                    obj = self.display_list[idx]
-                    apply_scaling(obj, scale_factor, cx, cy)  # Aplica o escalonamento ao objeto
+                cx, cy, cz = map(float, self.scale_cx_cy_cz_entry.get().split(','))  # Obtém o ponto de escalonamento
             else:
-                # Exibe um erro se nenhum modo de escalonamento for selecionado
                 messagebox.showerror("Erro", "Selecione um modo de escalonamento.")
                 return
+
+            # Aplica o escalonamento para os objetos selecionados
+            for idx in self.selected_indices:
+                obj = self.display_list[idx]
+                apply_scaling(obj, scale_factor, cx, cy, cz)
 
             # Atualiza a viewport após o escalonamento
             self.update_viewport()
 
         except ValueError:
-            # Trata erros de entrada inválida
-            messagebox.showerror("Erro", "Insira valores válidos para o fator de escala e o ponto de escalonamento, se necessário.")
+            messagebox.showerror("Erro", "Insira valores válidos para o fator de escala e o ponto de escalonamento.")
+
 
     def apply_reflection(self):
         try:
