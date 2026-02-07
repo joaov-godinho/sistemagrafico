@@ -1,0 +1,35 @@
+# Sistema Gráfico Interativo 2D/3D - Dependencies
+# Python 3.8+
+
+# ===== CORE DEPENDENCIES =====
+
+# Numerical computing and linear algebra
+numpy>=1.24.0
+
+# ===== OPTIONAL DEPENDENCIES =====
+
+# GUI (tkinter is usually included with Python)
+# If tkinter is missing on Linux, install separately:
+# sudo apt-get install python3-tk
+
+# ===== DEVELOPMENT DEPENDENCIES (OPTIONAL) =====
+# Only needed for development and testing
+
+pytest>=7.3.0
+pytest-cov>=4.0.0
+
+# Code formatting and linting
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.0.0
+
+# ===== DOCUMENTATION (OPTIONAL) =====
+# For generating code documentation
+
+# sphinx>=6.0.0
+# sphinx-rtd-theme>=1.2.0
+
+# ===== NOTES =====
+# This project uses minimal dependencies to focus on
+# educational aspects of computer graphics and functional
+# programming with pure mathematical transformations.
